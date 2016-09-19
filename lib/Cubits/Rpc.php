@@ -81,9 +81,9 @@ class Cubits_Rpc
                 $hmac_key = $auth->apiKeySecret;
                 $signature = $this->calc_signature($message, $hmac_key);
 
-                $headers[] = "CUBITS_KEY: {$auth->apiKey}";
-                $headers[] = "CUBITS_SIGNATURE: $signature";
-                $headers[] = "CUBITS_NONCE: $microseconds";
+                $headers[] = "X-Cubits-Key: {$auth->apiKey}";
+                $headers[] = "X-Cubits-Signature: $signature";
+                $headers[] = "X-Cubits-Nonce: $microseconds";
                 $headers[] = "Accept: application/vnd.api+json";
                 $headers[] = "Content-Type: application/vnd.api+json";
                 break;

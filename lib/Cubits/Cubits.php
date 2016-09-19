@@ -302,7 +302,7 @@ class Cubits
         $returnValue->success_url = $response->success_url;
         $returnValue->created_at = $response->created_at;
         $returnValue->updated_at = $response->updated_at;
-        $returnValue->transactions = $response->transactions;
+        $returnValue->transactions = isset($response->transactions) ? $response->transactions : array();
         $returnValue->txs_callback_url = $response->txs_callback_url;
 
         return $returnValue;
@@ -345,7 +345,7 @@ class Cubits
         $returnValue->success_url = $response->success_url;
         $returnValue->created_at = $response->created_at;
         $returnValue->updated_at = $response->updated_at;
-        $returnValue->transactions = $response->transactions;
+        $returnValue->transactions = isset($response->transactions) ? $response->transactions : array();
         $returnValue->txs_callback_url = $response->txs_callback_url;
         return $returnValue;
     }
@@ -389,7 +389,7 @@ class Cubits
         $returnValue->success_url = $response->success_url;
         $returnValue->created_at = $response->created_at;
         $returnValue->updated_at = $response->updated_at;
-        $returnValue->transactions = $response->transactions;
+        $returnValue->transactions = isset($response->transactions) ? $response->transactions : array();
         $returnValue->txs_callback_url = $response->txs_callback_url;
         return $returnValue;
     }

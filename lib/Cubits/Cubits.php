@@ -94,7 +94,7 @@ class Cubits
         $microseconds = sprintf('%0.0f',round(microtime(true) * 1000000));
         $params = array(
             "name" => $name,
-            "price" => number_format($price, 2, '.', ''),
+            "price" => number_format($price, 8, '.', ''),
             "currency" => $currency
         );
 
@@ -170,7 +170,7 @@ class Cubits
     public function sendMoney($address, $amount)
     {
         $params = array(
-            "amount" => number_format($amount, 2, '.', ''),
+            "amount" => number_format($amount, 8, '.', ''),
             "address" => $address
         );
         $response = json_decode($this->post("send_money", $params));
@@ -244,7 +244,7 @@ class Cubits
     {
         $sender = array(
             "currency" => $sender_currency,
-            "amount" => number_format($sender_amount, 2, '.', '')
+            "amount" => number_format($sender_amount, 8, '.', '')
         );
         $params = array(
             "sender" => $sender
@@ -264,7 +264,7 @@ class Cubits
     public function sell($sender_amount, $receiver_currency)
     {
         $sender = array(
-            "amount" => number_format($sender_amount, 2, '.', '')
+            "amount" => number_format($sender_amount, 8, '.', '')
         );
         $receiver = array(
             "currency" => $receiver_currency

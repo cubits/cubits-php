@@ -1,6 +1,6 @@
 {
     "name": "cubits/apiclient",
-    "description": "An easy way to buy, send, and accept bitcoin using the Cubits API",
+    "description": "A client library for the Cubits API on https://cubits.com",
     "keywords": ["cubits", "bitcoin", "api", "client"],
     "type": "library",
     "license": "MIT",
@@ -10,7 +10,12 @@
             "email": "hannes.schulz@cubits.com"
         }
     ],
-    "require": {},
+    "require": {
+        "php": ">=5.6|7.0",
+        "psr/log": "~1",
+        "guzzlehttp/guzzle": "^6.2",
+        "guzzlehttp/psr7": "^1.3"
+    },
     "autoload": {
         "psr-4": { "Cubits\\ApiClient\\": "src" }
     },

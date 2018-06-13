@@ -1,11 +1,16 @@
 <?php
 
-class Cubits_Exception extends Exception
+namespace Cubits;
+
+class Exception extends \Exception
 {
-    public function __construct($message, $http_code=null, $response=null)
+    private $response;
+    private $httpCode;
+
+    public function __construct($message, $httpCode = null, $response = null)
     {
         parent::__construct($message);
-        $this->http_code = $http_code;
+        $this->httpCode = $httpCode;
         $this->response = $response;
     }
 
@@ -16,7 +21,6 @@ class Cubits_Exception extends Exception
 
     public function getHttpCode()
     {
-        return $this->http_code;
+        return $this->httpCode;
     }
 }
-?>

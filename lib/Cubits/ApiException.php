@@ -1,6 +1,7 @@
 <?php
 
-class Cubits_ApiException extends Cubits_Exception
+namespace Cubits;
+
+class ApiException extends \Exception
 {
 }
-?>

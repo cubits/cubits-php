@@ -1,6 +1,7 @@
 <?php
 
-class Cubits_ConnectionException extends Cubits_Exception
+namespace Cubits;
+
+class ConnectionException extends Exception
 {
 }
-?>

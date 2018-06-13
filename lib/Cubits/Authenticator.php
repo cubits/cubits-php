@@ -1,7 +1,8 @@
 <?php
 
-abstract class Cubits_Authentication
+namespace Cubits;
+
+abstract class Authenticator
 {
     abstract public function getData();
 }
-?>

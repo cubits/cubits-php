@@ -1,0 +1,6 @@
+{
+    "name": "cubits/cubits-php",
+    "description": "Cubits PHP Client Library",
+    "type": "library",
+    "require": {}
+}

@@ -1,6 +1,7 @@
 {
     "name": "cubits/cubits-php",
     "description": "Cubits PHP Client Library",
+    "licence": "MIT",
     "type": "library",
     "require": {},
     "require-dev": {

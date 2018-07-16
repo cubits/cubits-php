@@ -399,12 +399,8 @@ class Cubits
             "sender" => $sender,
             "receiver" => $receiver
         );
-        $response = json_decode($this->post("sell", $params));
 
-        $returnValue = new \stdClass();
-        $returnValue->tx_ref_code = $response->tx_ref_code;
-
-        return $returnValue;
+        return json_decode($this->post("sell", $params), true);
     }
 
     /**

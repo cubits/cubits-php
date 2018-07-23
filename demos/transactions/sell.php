@@ -1,10 +1,16 @@
 <?php
-  require_once('../../lib/Cubits.php');
-  require_once('../credentials.php');
-  require_once('../configure.php');
 
-  $cubits = Cubits::withApiKey($_API_KEY, $_API_SECRET);
+use Cubits\Cubits;
 
-  $temp =  $cubits->sell("0,01250000", "EUR");
-  echo $temp->id . "<br />";
-?>
+/** @var Cubits $cubits */
+$cubits = require_once '../bootstrap.php';
+
+try {
+    $temp = $cubits->sell("0,01250000", "EUR");
+} catch (\Cubits\ApiException $e) {
+    die($e->getMessage());
+} catch (\Cubits\ConnectionException $e) {
+    die($e->getMessage());
+}
+
+echo $temp->id . "<br />";

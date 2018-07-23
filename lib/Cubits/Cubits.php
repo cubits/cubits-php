@@ -1,116 +1,206 @@
 <?php
 
+namespace Cubits;
+
 class Cubits
 {
 
-    private $_rpc;
-    private $_authentication;
+    private $rpc;
+    private $authenticator;
+    private $apiBase = 'https://api.cubits.com';
+    private $sslVerify = true;
 
-    public static function configure($api_base,$ssl_verify)
+    public function configure($apiBase, $sslVerify = true)
     {
-      define("CUBITS_API_BASE",  $api_base);
-      define("CUBITS_SSL_VERIFY",  $ssl_verify);
+        $this->apiBase = $apiBase;
+        $this->sslVerify = $sslVerify;
     }
 
+    /**
+     * @param $key
+     * @param $secret
+     * @return Cubits
+     * @throws ApiException
+     * @throws \Exception
+     */
     public static function withApiKey($key, $secret)
     {
-        return new Cubits(new Cubits_ApiKeyAuthentication($key, $secret));
+        if(!function_exists('curl_init')) {
+            throw new \Exception('The Cubits client library requires the CURL PHP extension.');
+        }
+
+        return new Cubits(new ApiKeyAuthenticator($key, $secret));
     }
 
-    // This constructor is deprecated.
-    public function __construct($authentication, $tokens=null, $apiKeySecret=null)
+    /**
+     * *DEPRECATED* Cubits constructor. Use Cubits::withApiKey instead.
+     * @param $authenticator
+     * @param $tokens       null
+     * @param $apiKeySecret null
+     * @throws ApiException
+     */
+    public function __construct($authenticator, $tokens = null, $apiKeySecret = null)
     {
         // First off, check for a legit authentication class type
-        if (is_a($authentication, 'Cubits_Authentication')) {
-            $this->_authentication = $authentication;
+        if ($authenticator instanceof Authenticator) {
+            $this->authenticator = $authenticator;
         } else {
-            // Here, $authentication was not a valid authentication object, so
+            // Here, $authenticator was not a valid authentication object, so
             // analyze the constructor parameters and return the correct object.
             // This should be considered deprecated, but it's here for backward compatibility.
             // In older versions of this library, the first parameter of this constructor
             // can be either an API key string or an OAuth object.
-            if ($authentication !== null && is_string($authentication)) {
-                $apiKey = $authentication;
+            if ($authenticator !== null && is_string($authenticator)) {
+                $apiKey = $authenticator;
 
-                $this->_authentication = new Cubits_ApiKeyAuthentication($apiKey, $apiKeySecret);
+                $this->authenticator = new ApiKeyAuthenticator($apiKey, $apiKeySecret);
 
             } else {
-                throw new Cubits_ApiException('Could not determine API authentication scheme');
+                throw new ApiException('Could not determine API authentication scheme');
             }
         }
 
-        $this->_rpc = new Cubits_Rpc(new Cubits_Requestor(), $this->_authentication);
+        $this->rpc = new Rpc($this, new RequestExecutor(), $this->authenticator);
     }
 
-    public function get($path, $params=array())
+    /**
+     * @param $path
+     * @param $params array
+     * @return mixed
+     * @throws ApiException
+     * @throws ConnectionException
+     */
+    public function get($path, $params = array())
     {
-        return $this->_rpc->request("GET", $path, $params);
+        return $this->rpc->request("GET", $path, $params);
     }
 
-    public function post($path, $params=array())
+    /**
+     * @param $path
+     * @param $params array
+     * @return mixed
+     * @throws ApiException
+     * @throws ConnectionException
+     */
+    public function post($path, $params = array())
     {
-        return $this->_rpc->request("POST", $path, $params);
+        return $this->rpc->request("POST", $path, $params);
     }
 
-    public function delete($path, $params=array())
+    /**
+     * @param $path
+     * @param $params array
+     * @return mixed
+     * @throws ApiException
+     * @throws ConnectionException
+     */
+    public function delete($path, $params = array())
     {
-        return $this->_rpc->request("DELETE", $path, $params);
+        return $this->rpc->request("DELETE", $path, $params);
     }
 
-    public function put($path, $params=array())
+    /**
+     * @param $path
+     * @param $params array
+     * @return mixed
+     * @throws ApiException
+     * @throws ConnectionException
+     */
+    public function put($path, $params = array())
     {
-        return $this->_rpc->request("PUT", $path, $params);
+        return $this->rpc->request("PUT", $path, $params);
     }
 
+    /**
+     * This request is intended to be used to test if your application is configured properly and can access the Cubits
+     * API using POST requests.
+     * @param $params
+     * @return \stdClass
+     * @throws ApiException
+     * @throws ConnectionException
+     */
     public function postTest($params)
     {
-       $response = json_decode($this->post("test", $params));
-       $returnValue = new stdClass();
-       $returnValue->status = $response->status;
-       return $returnValue;
+        $response = json_decode($this->post("test", $params));
+        $returnValue = new \stdClass();
+        $returnValue->status = $response->status;
+
+        return $returnValue;
     }
+
+    /**
+     * This request is intended to be used to test if your application is configured properly and can access the Cubits
+     * API using GET requests.
+     * @return \stdClass
+     * @throws ApiException
+     * @throws ConnectionException
+     */
     public function getTest()
     {
-       $response = json_decode($this->get("test"));
-       $returnValue = new stdClass();
-       $returnValue->status = $response->status;
-       return $returnValue;
+        $response = json_decode($this->get("test"));
+        $returnValue = new \stdClass();
+        $returnValue->status = $response->status;
+
+        return $returnValue;
 
     }
-    /* post invoices */
-    /*
-    @params $name       string(256)     (optional) Name of the item displayed to the customer
-    @params $price      string(16)      Price of the invoice that the merchant wants to receive, as a decimal floating point number, converted to string (e.g. "123.05")
-    @params $currency   string(3)       ISO 4217 code of the currency that the merchant wants to receive (e.g. "EUR")
-    @params $options    array
-        @params $share_to_keep_in_btc   number          (optional) Percentage of the invoice amount to be kept in BTC, as an integer number from 0 to 100. If not specified, a default value is used from the Cubits Pay / Payouts / Percentage Kept in BTC
-        @params $description            string(512)     (optional) Description of the item displayed to the customer
-        @params $reference              string(512)     (optional) Individual free-text field stored in the invoice as-is
-        @params $callback_url           string(512)     (optional) URL that is called on invoice status updates
-        @params $success_url            string(512)     (optional) URL to redirect the customer to after a successful
-    */
-    public function createInvoice($name, $price, $currency, $options=array())
+
+    /**
+     * Creates a new invoice.
+     * @param $currency   string(3)     ISO 4217 code of the currency that the merchant wants to receive (e.g. "EUR")
+     * @param $price      string(16)    Price of the invoice that the merchant wants to receive, as a decimal floating
+     *                                  point number, converted to string (e.g. "123.05")
+     *
+     * @param $name       string(256)   (optional) Name of the item displayed to the customer
+     * @param $options    array         (<br>
+     * <b>share_to_keep_in_btc</b>      <i>number</i><br>
+     * (optional) Percentage of the invoice amount to be kept in BTC, as an integer number from 0 to 100.
+     * If not specified, a default value is used from the Cubits Pay / Payouts / Percentage Kept in BTC <br>
+     *
+     * <b>description</b>               <i>string(512)</i><br>
+     * (optional) Description of the item displayed to the customer <br>
+     *
+     * <b>reference</b>                 <i>string(512)</i><br>
+     * (optional) Individual free-text field stored in the invoice as-is <br>
+     *
+     * <b>callback_url</b>              <i>string(512)</i><br>
+     * (optional) URL that is called on invoice status updates <br>
+     *
+     * <b>success_url</b>               <i>string(512)</i><br>
+     * (optional) URL to redirect the customer to after a successful <br>
+     * )
+     * @return \stdClass
+     * @throws ApiException
+     * @throws ConnectionException
+     */
+    public function createInvoice($currency, $price, $name = '', $options = array())
     {
-        $microseconds = sprintf('%0.0f',round(microtime(true) * 1000000));
         $params = array(
             "name" => $name,
             "price" => number_format($price, 8, '.', ''),
             "currency" => $currency
         );
 
-        foreach($options as $option => $value) {
+        foreach ($options as $option => $value) {
             $params[$option] = $value;
         }
+
         return $this->createInvoiceWithOptions($params);
     }
 
-    public function createInvoiceWithOptions($options=array())
+    /**
+     * @param $options array
+     * @return \stdClass
+     * @throws ApiException
+     * @throws ConnectionException
+     */
+    public function createInvoiceWithOptions($options = array())
     {
 
         $response = json_decode($this->post("invoices", $options));
 
-        $returnValue = new stdClass();
-        $returnValue->embedHtml = "<div class=\"cubits-button\" data-code=\"55555\" style=\"background: yellow;padding: 10px 25px;float:left\">Pay with bitcoin</div>";
+        $returnValue = new \stdClass();
+        $returnValue->embedHtml = '<div class="cubits-button" data-code="55555" style="background: yellow; padding: 10px 25px; float:left">Pay with bitcoin</div>';
         $returnValue->id = $response->id;
         $returnValue->invoice_url = $response->invoice_url;
         $returnValue->address = $response->address;
@@ -119,19 +209,21 @@ class Cubits
         return $returnValue;
 
     }
-    /* get invoice */
-    /*
-      @params $channelId             string        Unique identifier of the invoice
-    */
-    public function getInvoice($invoice_id)
+
+    /**
+     * Get information about an existing invoice.
+     * @param $invoiceId    string  Unique identifier of the invoice
+     * @return \stdClass
+     * @throws ApiException
+     * @throws ConnectionException
+     */
+    public function getInvoice($invoiceId)
     {
-        $microseconds = sprintf('%0.0f',round(microtime(true) * 1000000));
+        $invoiceUrl = "invoices/" . $invoiceId;
 
-        $invoice_url = "invoices/" . $invoice_id;
+        $response = json_decode($this->get($invoiceUrl));
 
-        $response = json_decode($this->get($invoice_url));
-
-        $returnValue = new stdClass();        
+        $returnValue = new \stdClass();
         $returnValue->id = $response->id;
         $returnValue->status = $response->status;
 
@@ -161,12 +253,14 @@ class Cubits
 
     }
 
-    /* post send_money */
-    /*
-        @params $address       string(64)     Bitcoin address the amount is to be sent to
-        @params $amount        string(32)     Amount in BTC to be sent, decimal number as a string (e.g. "0.12500000")
-    */
-
+    /**
+     * Creates a transaction to send bitcoins from your Cubits wallet to an external bitcoin address.
+     * @param $address      string(64)  Bitcoin address the amount is to be sent to
+     * @param $amount       string(32)  Amount in BTC to be sent, decimal number as a string (e.g. "0.12500000")
+     * @return \stdClass
+     * @throws ApiException
+     * @throws ConnectionException
+     */
     public function sendMoney($address, $amount)
     {
         $params = array(
@@ -175,40 +269,50 @@ class Cubits
         );
         $response = json_decode($this->post("send_money", $params));
 
-        $returnValue = new stdClass();
+        $returnValue = new \stdClass();
         $returnValue->tx_ref_code = $response->tx_ref_code;
+
         return $returnValue;
     }
 
-    /* get accounts */
+    /**
+     * Retrieves a list of your Cubits wallet accounts. Each wallet can have accounts in different currencies. With this
+     * call you can get a complete overview of all your balances on Cubits.
+     * @return \stdClass
+     * @throws ApiException
+     * @throws ConnectionException
+     */
     public function listAccounts()
     {
         $response = json_decode($this->get("accounts"));
-        $returnValue = new stdClass();
+        $returnValue = new \stdClass();
         $returnValue->accounts = $response->accounts;
+
         return $returnValue;
     }
 
-    /* post quote
-        @params $operation              string(256)     Type of the transaction: ￼buy or sell
-        @params $sender_currency        string(3)       ISO 4217 code of the currency that you want to spend (e.g. "EUR")
-        @params $sender_amount          string(16)      Price of the invoice that the merchant wants to receive, as a decimal floating point number, converted to string (e.g. "123.05")
-        @params $receiver_currency      string(3)       ISO 4217 code of the currency that you want to spend (e.g. "EUR")
-        @params $receiver_amount        string(16)      Price of the invoice that the merchant wants to receive, as a decimal floating point number, converted to string (e.g. "123.05")
-
-        Required Attributes
-        Exactly one amount, either sender.amount or receiver.amount must be specified.
-    */
-
-    public function requestQuote($operation, $sender_currency,$sender_amount, $receiver_currency, $receiver_amount)
+    /**
+     * Requests a quote for a buy or sell operation.
+     * @param $operation            string(256)     Type of the transaction: ￼buy or sell
+     * @param $sender_currency      string(3)       ISO 4217 code of the currency that you want to spend (e.g. "EUR")
+     * @param $sender_amount        string(16)      Price of the invoice that the merchant wants to receive, as a
+     *                                              decimal floating point number, converted to string (e.g. "123.05")
+     * @param $receiver_currency    string(3)       ISO 4217 code of the currency that you want to spend (e.g. "EUR")
+     * @param $receiver_amount      string(16)      Price of the invoice that the merchant wants to receive, as a
+     *                                              decimal floating point number, converted to string (e.g. "123.05")
+     * @return \stdClass
+     * @throws ApiException
+     * @throws ConnectionException
+     */
+    public function requestQuote($operation, $sender_currency, $sender_amount, $receiver_currency, $receiver_amount)
     {
         $sender = array(
-          'currency' => $sender_currency,
-          'amount' => $sender_amount
+            'currency' => $sender_currency,
+            'amount' => $sender_amount
         );
         $receiver = array(
-          'currency' => $receiver_currency,
-          'amount' => $receiver_amount
+            'currency' => $receiver_currency,
+            'amount' => $receiver_amount
         );
         $params = array(
             "operation" => $operation,
@@ -219,11 +323,17 @@ class Cubits
         return $this->requestQuoteWithParams($params);
     }
 
+    /**
+     * @param $params
+     * @return \stdClass
+     * @throws ApiException
+     * @throws ConnectionException
+     */
     public function requestQuoteWithParams($params)
     {
         $response = json_decode($this->post("quotes", $params));
 
-        $returnValue = new stdClass();
+        $returnValue = new \stdClass();
         $returnValue->operation = $response->operation;
         $returnValue->sender = array(
             'currency' => $response->sender->currency,
@@ -234,33 +344,49 @@ class Cubits
             'currency' => $response->receiver->currency,
             'amount' => $response->receiver->amount
         );
+
         return $returnValue;
     }
-    /* post buy
-        @params $sender_currency       string(3)     ISO 4217 code of the currency that you want to spend (e.g. "EUR")
-        @params $sender_amount         string(32)     Amount in specified currency to be spent, decimal number as a string (e.g. "12.50")
-    */
-    public function buy($sender_currency, $sender_amount)
+
+    /**
+     * Creates a transaction to buy bitcoins using funds from your Cubits account. Bought bitcoins will be credited to
+     * your Cubits wallet.
+     * The exact exchange rate will be calculated at the transaction execution time.
+     * @param $senderCurrency   string(3)       ISO 4217 code of the currency that you want to spend (e.g. "EUR")
+     * @param $senderAmount     string(32)      Amount in specified currency to be spent, decimal number as a string
+     *                                          (e.g. "12.50")
+     * @return \stdClass
+     * @throws ApiException
+     * @throws ConnectionException
+     */
+    public function buy($senderCurrency, $senderAmount)
     {
         $sender = array(
-            "currency" => $sender_currency,
-            "amount" => number_format($sender_amount, 8, '.', '')
+            "currency" => $senderCurrency,
+            "amount" => number_format($senderAmount, 8, '.', '')
         );
         $params = array(
             "sender" => $sender
         );
         $response = json_decode($this->post("buy", $params));
 
-        $returnValue = new stdClass();
+        $returnValue = new \stdClass();
         $returnValue->tx_ref_code = $response->tx_ref_code;
+
         return $returnValue;
     }
 
-    /* post sell */
-    /*
-        @params $sender_amount         string(32)     Amount in specified currency to be spent, decimal number as a string (e.g. "12.50")
-        @params $receiver_currency     string(3)     ISO 4217 code of the currency that you want to spend (e.g. "EUR")
-    */
+    /**
+     * Creates a transaction to sell bitcoins from your Cubits wallet and receive amount in specified fiat currency.
+     * Fiat funds will be credited to your Cubits account.
+     * The exact exchange rate will be calculated at the transaction execution time.
+     * @param $sender_amount           string(32)   Amount in specified currency to be spent,
+     *                                              decimal number as a string (e.g. "12.50")
+     * @param $receiver_currency       string(3)    ISO 4217 code of the currency that you want to spend (e.g. "EUR")
+     * @return \stdClass
+     * @throws ApiException
+     * @throws ConnectionException
+     */
     public function sell($sender_amount, $receiver_currency)
     {
         $sender = array(
@@ -273,24 +399,24 @@ class Cubits
             "sender" => $sender,
             "receiver" => $receiver
         );
-        $response = json_decode($this->post("sell", $params));
 
-        $returnValue = new stdClass();
-        $returnValue->tx_ref_code = $response->tx_ref_code;
-        return $returnValue;
+        return json_decode($this->post("sell", $params), true);
     }
 
-    /* get channel */
-    /*
-      @params $channelId             string        Unique identifier of the channel
-    */
+    /**
+     * Get information about an existing channel.
+     * @param $channelId    string  Unique identifier of the channel
+     * @return \stdClass
+     * @throws ApiException
+     * @throws ConnectionException
+     */
     public function getChannel($channelId)
     {
         $url = "channels/" . $channelId;
 
         $response = json_decode($this->get($url));
 
-        $returnValue = new stdClass();
+        $returnValue = new \stdClass();
         $returnValue->id = $response->id;
         $returnValue->address = $response->address;
         $returnValue->receiver_currency = $response->receiver_currency;
@@ -308,17 +434,30 @@ class Cubits
         return $returnValue;
     }
 
-    /* create channel */
-    /*
-        @params $receiver_currency     string(3)     ISO 4217 code of the currency that you want to spend (e.g. "EUR")
-        @params $name                  string(256)   (optional) Name of the channel, displayed to the customer on the payment screen
-        @params $description           string(512)   (optional) Description of the item displayed to the customer on the payment screen
-        @params $reference             string(512)   (optional) Individual free-text field stored in the channel as-is
-        @params $callback_url          string(512)   (optional) URL that is called on channel status updates
-        @params $success_url           string(512)   (optional) URL to redirect the user to after a successful payment
-    */
-
-    public function createChannel($receiver_currency, $name=null,$description=null, $reference=null, $callback_url=null, $success_url=null,$txs_callback_url=null )
+    /**
+     * Creates a new channel.
+     * @param $receiver_currency    string(3)          ISO 4217 code of the currency that you want to spend (e.g. "EUR")
+     * @param $name                 null|string(256)   (optional) Name of the channel, displayed to the customer
+     *                                                  on the payment screen
+     * @param $description          null|string(512)   (optional) Description of the item displayed to the customer
+     *                                                  on the payment screen
+     * @param $reference            null|string(512)   (optional) Individual free-text field stored in the channel as-is
+     * @param $callback_url         null|string(512)   (optional) URL that is called on channel status updates
+     * @param $success_url          null|string(512)   (optional) URL to redirect the user to after a successful payment
+     * @param $txs_callback_url
+     * @return \stdClass
+     * @throws ApiException
+     * @throws ConnectionException
+     */
+    public function createChannel(
+        $receiver_currency,
+        $name = null,
+        $description = null,
+        $reference = null,
+        $callback_url = null,
+        $success_url = null,
+        $txs_callback_url = null
+    )
     {
         $params = array(
             "receiver_currency" => $receiver_currency,
@@ -332,7 +471,7 @@ class Cubits
 
         $response = json_decode($this->post("channels", $params));
 
-        $returnValue = new stdClass();
+        $returnValue = new \stdClass();
 
         $returnValue->id = $response->id;
         $returnValue->address = $response->address;
@@ -347,21 +486,36 @@ class Cubits
         $returnValue->updated_at = $response->updated_at;
         $returnValue->transactions = isset($response->transactions) ? $response->transactions : array();
         $returnValue->txs_callback_url = $response->txs_callback_url;
+
         return $returnValue;
     }
 
-    /* update channel */
-    /*
-        @params $channelId             string        Unique identifier of the channel
-        @params $receiver_currency     string(3)     ISO 4217 code of the currency that you want to spend (e.g. "EUR")
-        @params $name                  string(256)   (optional) Name of the channel, displayed to the customer on the payment screen
-        @params $description           string(512)   (optional) Description of the item displayed to the customer on the payment screen
-        @params $reference             string(512)   (optional) Individual free-text field stored in the channel as-is
-        @params $callback_url          string(512)   (optional) URL that is called on channel status updates
-        @params $success_url           string(512)   (optional) URL to redirect the user to after a successful payment
-        @params $tx_callback_url       string(512)   (optional) URL that is called on channel transaction status updates
-    */
-    public function updateChannel($channelId, $receiver_currency, $name=null,$description=null, $reference=null, $callback_url=null, $success_url=null,$tx_callback_url=null  )
+    /**
+     * @param $channelId            string             Unique identifier of the channel
+     * @param $receiver_currency    string(3)          ISO 4217 code of the currency that you want to spend (e.g. "EUR")
+     * @param $name                 null|string(256)   (optional) Name of the channel, displayed to the customer
+     *                                                  on the payment screen
+     * @param $description          null|string(512)   (optional) Description of the item displayed to the customer
+     *                                                  on the payment screen
+     * @param $reference            null|string(512)   (optional) Individual free-text field stored in the channel as-is
+     * @param $callback_url         null|string(512)   (optional) URL that is called on channel status updates
+     * @param $success_url          null|string(512)   (optional) URL to redirect the user to after a successful payment
+     * @param $tx_callback_url      null|string(512)   (optional) URL that is called on channel transaction status
+     *                                                  updates
+     * @return \stdClass
+     * @throws ApiException
+     * @throws ConnectionException
+     */
+    public function updateChannel(
+        $channelId,
+        $receiver_currency,
+        $name = null,
+        $description = null,
+        $reference = null,
+        $callback_url = null,
+        $success_url = null,
+        $tx_callback_url = null
+    )
     {
         $url = "channels/" . $channelId;
         $params = array(
@@ -376,7 +530,7 @@ class Cubits
 
         $response = json_decode($this->post($url, $params));
 
-        $returnValue = new stdClass();
+        $returnValue = new \stdClass();
 
         $returnValue->id = $response->id;
         $returnValue->address = $response->address;
@@ -391,9 +545,24 @@ class Cubits
         $returnValue->updated_at = $response->updated_at;
         $returnValue->transactions = isset($response->transactions) ? $response->transactions : array();
         $returnValue->txs_callback_url = $response->txs_callback_url;
+
         return $returnValue;
     }
 
-}
+    /**
+     * @return string
+     */
+    public function getApiBase()
+    {
+        return $this->apiBase;
+    }
 
-?>
+    /**
+     * @return bool
+     */
+    public function getSslVerify()
+    {
+        return $this->sslVerify;
+    }
+
+}

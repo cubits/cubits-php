@@ -1,23 +1,31 @@
 <?php
-  require_once('../../lib/Cubits.php');
-  require_once('../credentials.php');
-  require_once('../configure.php');
 
-  $cubits = Cubits::withApiKey($_API_KEY, $_API_SECRET);
+use Cubits\Cubits;
 
-  $sender = array(
+/** @var Cubits $cubits */
+$cubits = require_once '../bootstrap.php';
+
+$sender = array(
     'currency' => 'EUR'
-  );
-  $receiver = array(
+);
+
+$receiver = array(
     'currency' => 'BTC',
     'amount' => '10'
-  );
-  $params = array(
+);
+
+$params = array(
     'operation' => 'buy',
     'sender' => $sender,
     'receiver' => $receiver,
-   );
+);
 
-  $temp = $cubits->post('quotes',$params);
-  echo  $temp . "<br />";
-?>
+try {
+    $temp = $cubits->post('quotes', $params);
+} catch (\Cubits\ApiException $e) {
+    die($e->getMessage());
+} catch (\Cubits\ConnectionException $e) {
+    die($e->getMessage());
+}
+
+echo  $temp . "<br />";

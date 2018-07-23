@@ -1,4 +1,3 @@
 <?php
-  $_API_KEY = "...";
-  $_API_SECRET = "...";
-?>
+$_API_KEY = "...";
+$_API_SECRET = "...";

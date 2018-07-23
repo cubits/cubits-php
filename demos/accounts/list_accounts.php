@@ -1,14 +1,20 @@
 <?php
-  require_once('../../lib/Cubits.php');
-  require_once('../credentials.php');
-  require_once('../configure.php');
 
-  $cubits = Cubits::withApiKey($_API_KEY, $_API_SECRET);
+use Cubits\Cubits;
 
-  $temp = $cubits->listAccounts();
-  $accounts = $temp->accounts;
+/** @var Cubits $cubits */
+$cubits = require_once '../bootstrap.php';
 
-  foreach($accounts as $value){
-    echo $value->currency.":&nbsp;".$value->balance."<br>";
-  }
-?>
+try {
+    $temp = $cubits->listAccounts();
+} catch (\Cubits\ApiException $e) {
+    die($e->getMessage());
+} catch (\Cubits\ConnectionException $e) {
+    die($e->getMessage());
+}
+
+$accounts = $temp->accounts;
+
+foreach ($accounts as $value) {
+    echo $value->currency . ":&nbsp;" . $value->balance . "<br>";
+}

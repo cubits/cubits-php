@@ -1,14 +1,21 @@
 <?php
-  require_once('../../lib/Cubits.php');
-  require_once('../credentials.php');
-  require_once('../configure.php');
-  
-  $cubits = Cubits::withApiKey($_API_KEY, $_API_SECRET);
-  $params = array(
+
+use Cubits\Cubits;
+
+/** @var Cubits $cubits */
+$cubits = require_once '../bootstrap.php';
+
+$params = array(
     'reference' => '15',
     'description' => 'Order monkey'
-   );
+);
 
-  $temp =  $cubits->createInvoice("Alpaca socks", "10.00", "EUR", $params);
-  echo $temp->id . "<br />";
-?>
+try {
+    $temp = $cubits->createInvoice("EUR", "10.00", "Alpaca socks", $params);
+} catch (\Cubits\ApiException $e) {
+    die($e->getMessage());
+} catch (\Cubits\ConnectionException $e) {
+    die($e->getMessage());
+}
+
+echo $temp->id . "<br />";

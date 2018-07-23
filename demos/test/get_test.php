@@ -1,15 +1,20 @@
 <?php
-  require_once('../../lib/Cubits.php');
-  require_once('../credentials.php');
-  require_once('../configure.php');
 
-  $cubits = Cubits::withApiKey($_API_KEY, $_API_SECRET);
+use Cubits\Cubits;
 
-  $params = array(
+/** @var Cubits $cubits */
+$cubits = require_once '../bootstrap.php';
+
+$params = array(
     'variable' => "value"
-  );
+);
 
-  $temp = $cubits->getTest($params);
+try {
+    $temp = $cubits->getTest($params);
+} catch (\Cubits\ApiException $e) {
+    die($e->getMessage());
+} catch (\Cubits\ConnectionException $e) {
+    die($e->getMessage());
+}
 
-  echo $temp->status;
-?>
+echo $temp->status;

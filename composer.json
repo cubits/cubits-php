@@ -1,0 +1,16 @@
+{
+    "name": "cubits/cubits-php",
+    "description": "Cubits PHP Client Library",
+    "licence": "MIT",
+    "type": "library",
+    "require": {},
+    "require-dev": {
+        "phpunit/phpunit": "^6"
+    },
+    "autoload": {
+        "psr-4": {
+            "Cubits\\": "lib/Cubits/",
+            "Tests\\": "tests/"
+        }
+    }
+}

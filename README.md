@@ -6,7 +6,9 @@ This library supports  [API key authentication method](https://cubits.com/help)
 
 ## Installation
 
-    require_once("/path/to/cubits-php/lib/Cubits.php");
+```
+composer require cubits/cubits-php
+```
 
 ## Usage
 
@@ -26,7 +28,7 @@ Next, configure the Cubits library via `Cubits::configure` method and create an 
 ### Create an Invoice
 
 ```php
-$response = $cubits->createInvoice("Your Order #1234", "42.95", "EUR", array(
+$response = $cubits->createInvoice("EUR", "42.95", "Your Order #1234", array(
             "description" => "1 widget at EUR 42.95",
             "reference" =>  "my custom tracking code for this order"
         ));
